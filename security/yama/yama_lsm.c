@@ -114,12 +114,8 @@ static void yama_task_free(struct task_struct *task)
 static int yama_task_prctl(int option, unsigned long arg2, unsigned long arg3,
 			   unsigned long arg4, unsigned long arg5)
 {
-	int rc;
+	int rc = -ENOSYS;
 	struct task_struct *myself = current;
-
-	rc = cap_task_prctl(option, arg2, arg3, arg4, arg5);
-	if (rc != -ENOSYS)
-		return rc;
 
 	switch (option) {
 	case PR_SET_PTRACER:
@@ -241,14 +237,7 @@ static int ptracer_exception_found(struct task_struct *tracer,
 static int yama_ptrace_access_check(struct task_struct *child,
 				    unsigned int mode)
 {
-	int rc;
-
-	/* If standard caps disallows it, so does Yama.  We should
-	 * only tighten restrictions further.
-	 */
-	rc = cap_ptrace_access_check(child, mode);
-	if (rc)
-		return rc;
+	int rc = 0;
 
 	/* require ptrace target be a child of ptracer on attach */
 	if (mode == PTRACE_MODE_ATTACH &&
@@ -270,13 +259,16 @@ static int yama_ptrace_access_check(struct task_struct *child,
 	return rc;
 }
 
-static struct security_operations yama_ops = {
-	LSM_HOOK_INIT(name, "yama"),
-
+static struct security_hook_list yama_hooks[] = {
 	LSM_HOOK_INIT(ptrace_access_check, yama_ptrace_access_check),
 	LSM_HOOK_INIT(task_prctl, yama_task_prctl),
 	LSM_HOOK_INIT(task_free, yama_task_free),
 };
+
+void __init yama_add_hooks(void)
+{
+	security_add_hooks(yama_hooks, ARRAY_SIZE(yama_hooks));
+}
 
 #ifdef CONFIG_SYSCTL
 static int zero;
@@ -304,13 +296,9 @@ static struct ctl_table yama_sysctl_table[] = {
 
 static __init int yama_init(void)
 {
-	if (!security_module_enable(&yama_ops))
+	if (!security_module_enable("yama"))
 		return 0;
-
-	printk(KERN_INFO "Yama: becoming mindful.\n");
-
-	if (register_security(&yama_ops))
-		panic("Yama: kernel registration failed.\n");
+	pr_info("Yama: becoming mindful.\n");
 
 #ifdef CONFIG_SYSCTL
 	if (!register_sysctl_paths(yama_sysctl_path, yama_sysctl_table))
