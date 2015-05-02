@@ -706,7 +706,7 @@ int security_file_fcntl(struct file *file, unsigned int cmd, unsigned long arg)
 
 int security_file_set_fowner(struct file *file)
 {
-	call_int_hook(file_set_fowner, 0, file);
+	return call_int_hook(file_set_fowner, 0, file);
 }
 
 int security_file_send_sigiotask(struct task_struct *tsk,
