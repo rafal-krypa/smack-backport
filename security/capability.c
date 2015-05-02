@@ -10,7 +10,7 @@
  *
  */
 
-#include <linux/security.h>
+#include <linux/lsm_hooks.h>
 
 static int cap_syslog(int type)
 {
