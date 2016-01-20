@@ -240,7 +240,7 @@ static int yama_ptrace_access_check(struct task_struct *child,
 	int rc = 0;
 
 	/* require ptrace target be a child of ptracer on attach */
-	if (mode == PTRACE_MODE_ATTACH &&
+	if (mode & PTRACE_MODE_ATTACH &&
 	    ptrace_scope &&
 	    !task_is_descendant(current, child) &&
 	    !ptracer_exception_found(current, child) &&
