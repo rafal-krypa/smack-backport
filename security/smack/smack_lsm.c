@@ -771,6 +771,20 @@ static int smack_set_mnt_opts(struct super_block *sb,
 	if (sp->smk_initialized)
 		return 0;
 
+	if (!smack_privileged(CAP_MAC_ADMIN)) {
+		/*
+		 * Unprivileged mounts don't get to specify Smack values.
+		 */
+		if (num_opts)
+			return -EPERM;
+		/*
+		 * Unprivileged mounts get root and default from the caller.
+		 */
+		skp = smk_of_current();
+		sp->smk_root = skp;
+		sp->smk_default = skp;
+	}
+
 	sp->smk_initialized = 1;
 
 	for (i = 0; i < num_opts; i++) {
@@ -809,20 +823,6 @@ static int smack_set_mnt_opts(struct super_block *sb,
 		default:
 			break;
 		}
-	}
-
-	if (!smack_privileged(CAP_MAC_ADMIN)) {
-		/*
-		 * Unprivileged mounts don't get to specify Smack values.
-		 */
-		if (num_opts)
-			return -EPERM;
-		/*
-		 * Unprivileged mounts get root and default from the caller.
-		 */
-		skp = smk_of_current();
-		sp->smk_root = skp;
-		sp->smk_default = skp;
 	}
 
 	/*
